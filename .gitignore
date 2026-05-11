@@ -1,0 +1,59 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# editor / local IDE (bỏ comment nếu muốn commit cấu hình .vscode dùng chung)
+# .vscode/
+# .idea/
+
+# tool caches
+.eslintcache
+.prettiercache
+
+# Supabase CLI (local `supabase start`)
+supabase/.branches
+supabase/.temp
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files — tránh dùng `.env*` (dễ ignore nhầm `.env.example`, file mẫu nên được commit)
+.env
+.env*.local
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts

@@ -137,28 +137,28 @@ export function KeysDashboard() {
   }
 
   return (
-    <div className="mt-8 space-y-6">
+    <div className="space-y-8">
       {error && (
         <div
           role="alert"
-          className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/50 dark:text-red-200"
+          className="rounded-xl border border-red-200/90 bg-red-50 px-4 py-3 text-sm text-red-900 shadow-sm dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-100"
         >
           {error}
         </div>
       )}
 
-      <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+      <section className="rounded-2xl border border-zinc-200/90 bg-white/90 p-6 shadow-sm ring-1 ring-zinc-900/[0.04] backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-900/60 dark:ring-white/[0.06] sm:p-7">
         <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
           Create a new key
         </h2>
-        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+        <p className="mt-1.5 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
           The full secret is shown only once after creation. Store it safely.
         </p>
-        <form onSubmit={handleCreate} className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+        <form onSubmit={handleCreate} className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-end">
           <div className="min-w-0 flex-1">
             <label
               htmlFor="key-name"
-              className="block text-xs font-medium text-zinc-500 dark:text-zinc-400"
+              className="block text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400"
             >
               Label (optional)
             </label>
@@ -169,13 +169,13 @@ export function KeysDashboard() {
               onChange={(e) => setCreateName(e.target.value)}
               placeholder="e.g. production, dev laptop"
               maxLength={200}
-              className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none ring-zinc-400 focus:ring-2 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
+              className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-indigo-400 dark:focus:ring-indigo-400/20"
             />
           </div>
           <button
             type="submit"
             disabled={creating}
-            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+            className="h-[42px] shrink-0 rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white shadow-md shadow-indigo-600/20 transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 dark:shadow-indigo-500/15"
           >
             {creating ? "Creating…" : "Create key"}
           </button>
@@ -183,138 +183,181 @@ export function KeysDashboard() {
       </section>
 
       <section>
-        <div className="mb-3 flex items-center justify-between gap-4">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
             Your keys
           </h2>
           <button
             type="button"
             onClick={() => void loadKeys()}
-            className="text-sm font-medium text-zinc-600 underline-offset-4 hover:text-zinc-900 hover:underline dark:text-zinc-400 dark:hover:text-zinc-100"
+            className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 shadow-sm transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800"
           >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-zinc-500" aria-hidden>
+              <path
+                d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
             Refresh
           </button>
         </div>
 
         {loading ? (
-          <p className="text-sm text-zinc-500">Loading…</p>
+          <div className="space-y-3 rounded-2xl border border-zinc-200/90 bg-white/80 p-6 dark:border-zinc-800 dark:bg-zinc-900/40">
+            <div className="h-4 w-1/3 animate-pulse rounded-md bg-zinc-200 dark:bg-zinc-800" />
+            <div className="h-4 w-2/3 animate-pulse rounded-md bg-zinc-200 dark:bg-zinc-800" />
+            <div className="h-4 w-1/2 animate-pulse rounded-md bg-zinc-200 dark:bg-zinc-800" />
+          </div>
         ) : keys.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-zinc-300 px-4 py-8 text-center text-sm text-zinc-500 dark:border-zinc-700">
-            No keys yet. Create one above.
-          </p>
+          <div className="rounded-2xl border border-dashed border-zinc-300/90 bg-zinc-50/80 px-6 py-14 text-center dark:border-zinc-700 dark:bg-zinc-900/30">
+            <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-600 dark:bg-indigo-950/80 dark:text-indigo-300">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path
+                  d="M7 11V7a5 5 0 0110 0v4M6 11h12v10a1 1 0 01-1 1H7a1 1 0 01-1-1V11z"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+            <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">No keys yet</p>
+            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+              Create your first key using the form above.
+            </p>
+          </div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800">
-            <table className="w-full min-w-[640px] text-left text-sm">
-              <thead className="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/80">
-                <tr>
-                  <th className="px-4 py-3 font-medium text-zinc-700 dark:text-zinc-300">
-                    Label
-                  </th>
-                  <th className="px-4 py-3 font-medium text-zinc-700 dark:text-zinc-300">
-                    Prefix
-                  </th>
-                  <th className="px-4 py-3 font-medium text-zinc-700 dark:text-zinc-300">
-                    Created
-                  </th>
-                  <th className="px-4 py-3 font-medium text-zinc-700 dark:text-zinc-300">
-                    Status
-                  </th>
-                  <th className="px-4 py-3 font-medium text-zinc-700 dark:text-zinc-300">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-200 bg-white dark:divide-zinc-800 dark:bg-zinc-950">
-                {keys.map((row) => {
-                  const revoked = Boolean(row.revoked_at);
-                  const busy = busyId === row.id;
-                  return (
-                    <tr key={row.id} className="text-zinc-800 dark:text-zinc-200">
-                      <td className="px-4 py-3 font-medium">{row.name || "—"}</td>
-                      <td className="px-4 py-3 font-mono text-xs">{row.key_prefix}</td>
-                      <td className="px-4 py-3 text-zinc-600 dark:text-zinc-400">
-                        {new Date(row.created_at).toLocaleString()}
-                      </td>
-                      <td className="px-4 py-3">
-                        {revoked ? (
-                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-950 dark:text-amber-200">
-                            Revoked
-                          </span>
-                        ) : (
-                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200">
-                            Active
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            disabled={revoked || busy}
-                            onClick={() => void handleRevoke(row.id)}
-                            className="text-xs font-medium text-amber-700 underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:opacity-40 dark:text-amber-400"
-                          >
-                            Revoke
-                          </button>
-                          <button
-                            type="button"
-                            disabled={busy}
-                            onClick={() => void handleDelete(row.id)}
-                            className="text-xs font-medium text-red-600 underline-offset-2 hover:underline disabled:opacity-40 dark:text-red-400"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          <div className="overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-sm ring-1 ring-zinc-900/[0.04] dark:border-zinc-800 dark:bg-zinc-950 dark:ring-white/[0.06]">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[640px] text-left text-sm">
+                <thead className="border-b border-zinc-200 bg-zinc-50/90 dark:border-zinc-800 dark:bg-zinc-900/90">
+                  <tr>
+                    {["Label", "Prefix", "Created", "Status", "Actions"].map((h) => (
+                      <th
+                        key={h}
+                        className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400"
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
+                  {keys.map((row) => {
+                    const revoked = Boolean(row.revoked_at);
+                    const busy = busyId === row.id;
+                    return (
+                      <tr
+                        key={row.id}
+                        className="text-zinc-800 transition hover:bg-zinc-50/80 dark:text-zinc-200 dark:hover:bg-zinc-900/50"
+                      >
+                        <td className="px-4 py-3.5 font-medium">{row.name || "—"}</td>
+                        <td className="px-4 py-3.5 font-mono text-xs text-zinc-600 dark:text-zinc-400">
+                          {row.key_prefix}
+                        </td>
+                        <td className="px-4 py-3.5 text-zinc-600 dark:text-zinc-400">
+                          {new Date(row.created_at).toLocaleString()}
+                        </td>
+                        <td className="px-4 py-3.5">
+                          {revoked ? (
+                            <span className="inline-flex rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-900 dark:bg-amber-950/80 dark:text-amber-200">
+                              Revoked
+                            </span>
+                          ) : (
+                            <span className="inline-flex rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-900 dark:bg-emerald-950/80 dark:text-emerald-200">
+                              Active
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              disabled={revoked || busy}
+                              onClick={() => void handleRevoke(row.id)}
+                              className="rounded-lg px-2 py-1 text-xs font-semibold text-amber-700 transition hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-40 dark:text-amber-400 dark:hover:bg-amber-950/40"
+                            >
+                              Revoke
+                            </button>
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() => void handleDelete(row.id)}
+                              className="rounded-lg px-2 py-1 text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-40 dark:text-red-400 dark:hover:bg-red-950/40"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </section>
 
       {newKey && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/60 p-4 backdrop-blur-[2px]"
           role="dialog"
           aria-modal="true"
           aria-labelledby="new-key-title"
         >
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border border-zinc-200 bg-white p-6 shadow-xl dark:border-zinc-700 dark:bg-zinc-900">
-            <h3
-              id="new-key-title"
-              className="text-lg font-semibold text-zinc-900 dark:text-zinc-50"
-            >
-              Key created — copy it now
-            </h3>
-            <p className="mt-2 text-sm font-medium text-amber-800 dark:text-amber-200">
-              This is the only time the full secret is shown. If you leave this
-              dialog without copying, you cannot retrieve it again.
-            </p>
-            <pre className="mt-4 overflow-x-auto rounded-lg bg-zinc-100 p-3 text-xs break-all text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl ring-1 ring-zinc-900/5 dark:border-zinc-700 dark:bg-zinc-900 dark:ring-black/40 sm:p-8">
+            <div className="flex items-start gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-950/80 dark:text-amber-300">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <path
+                    d="M12 9v4m0 4h.01M12 2a10 10 0 100 20 10 10 0 000-20z"
+                    stroke="currentColor"
+                    strokeWidth="1.75"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </span>
+              <div className="min-w-0">
+                <h3
+                  id="new-key-title"
+                  className="text-lg font-semibold text-zinc-900 dark:text-zinc-50"
+                >
+                  Key created — copy it now
+                </h3>
+                <p className="mt-2 text-sm font-medium leading-relaxed text-amber-800 dark:text-amber-200/90">
+                  This is the only time the full secret is shown. If you close without copying, you
+                  cannot retrieve it again.
+                </p>
+              </div>
+            </div>
+            <pre className="mt-5 overflow-x-auto rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-xs leading-relaxed break-all text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100">
               {newKey.key}
             </pre>
-            <div className="mt-4 flex flex-wrap gap-3">
+            <div className="mt-5 flex flex-wrap gap-3">
               <button
                 type="button"
                 onClick={() => void copyNewKey()}
-                className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-indigo-600/20 transition hover:bg-indigo-500 dark:shadow-indigo-500/15"
               >
                 {copied ? "Copied!" : "Copy to clipboard"}
               </button>
               <button
                 type="button"
                 onClick={closeNewKeyModal}
-                className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                className="rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-800 transition hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
               >
                 I have stored it — close
               </button>
             </div>
-            <p className="mt-3 text-xs text-zinc-500">
-              id: <span className="font-mono">{newKey.id}</span> · prefix:{" "}
-              <span className="font-mono">{newKey.key_prefix}</span>
+            <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-400">
+              id: <span className="font-mono text-zinc-700 dark:text-zinc-300">{newKey.id}</span> ·
+              prefix:{" "}
+              <span className="font-mono text-zinc-700 dark:text-zinc-300">{newKey.key_prefix}</span>
             </p>
           </div>
         </div>

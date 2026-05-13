@@ -29,7 +29,7 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 
-# editor / local IDE (bỏ comment nếu muốn commit cấu hình .vscode dùng chung)
+# editor / local IDE (uncomment if you want shared .vscode in the repo)
 # .vscode/
 # .idea/
 
@@ -47,12 +47,15 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files — tránh dùng `.env*` (dễ ignore nhầm `.env.example`, file mẫu nên được commit)
+# env files — avoid a blanket `.env*` rule (it can ignore `.env.example`, which should stay committed)
 .env
 .env*.local
 
 # vercel
 .vercel
+
+# AI-generated local docs (not committed)
+/my_docs/
 
 # typescript
 *.tsbuildinfo

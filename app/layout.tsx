@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "API key manager",
-  description: "Manage API keys with NextAuth and Supabase",
+  description: "Manage API keys with Google sign-in, Supabase, and Next.js",
 };
 
 export default function RootLayout({

@@ -16,9 +16,14 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## API key manager (local setup)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Copy `.env.example` to `.env.local` and fill in values (do not commit `.env.local`).
+2. **Supabase:** `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` — run the SQL in `supabase/migrations/` on your project, then add keys from **Project Settings → API Keys**.
+3. **Auth (Google):** `AUTH_SECRET`, `AUTH_URL` (e.g. `http://localhost:3000`), `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` — OAuth redirect URI must include `http://localhost:3000/api/auth/callback/google`.
+4. Sign in, open **`/keys`** to create and manage keys.
+
+**Rate limiting:** `POST/GET /api/keys` and `PATCH/DELETE /api/keys/[id]` use an **in-memory** fixed window per user (fine for dev/small deploys). For production at scale, prefer **Upstash Redis** (or similar) shared across instances.
 
 ## Learn More
 

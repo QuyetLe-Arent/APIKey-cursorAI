@@ -1,6 +1,7 @@
 "use client";
 
 import type { ApiKeyListItem } from "@/lib/api-key-types";
+import { formatDateTime, formatInteger } from "@/lib/format-display";
 
 type ApiKeysTableProps = {
   keys: ApiKeyListItem[];
@@ -49,15 +50,13 @@ export function ApiKeysTable({
                     {row.key_prefix}
                   </td>
                   <td className="px-4 py-3.5 text-zinc-600 dark:text-zinc-400">
-                    0 / {row.usage_limit?.toLocaleString() ?? "—"}
+                    0 / {typeof row.usage_limit === "number" ? formatInteger(row.usage_limit) : "—"}
                   </td>
                   <td className="px-4 py-3.5 text-zinc-600 dark:text-zinc-400">
-                    {row.last_used_at
-                      ? new Date(row.last_used_at).toLocaleString()
-                      : "Never"}
+                    {row.last_used_at ? formatDateTime(row.last_used_at) : "Never"}
                   </td>
                   <td className="px-4 py-3.5 text-zinc-600 dark:text-zinc-400">
-                    {new Date(row.created_at).toLocaleString()}
+                    {formatDateTime(row.created_at)}
                   </td>
                   <td className="px-4 py-3.5">
                     {revoked ? (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useNotify } from "@/components/notification-context";
+import { formatInteger } from "@/lib/format-display";
 
 const REQUEST_LIMIT = 1000;
 const DEMO_USED = 24;
@@ -48,7 +49,7 @@ export function PlanOverviewCard({ activeKeyCount, keysLoading }: PlanOverviewCa
           />
         </div>
         <span className="mt-2 inline-block text-sm font-medium text-white/95">
-          {DEMO_USED.toLocaleString()} / {REQUEST_LIMIT.toLocaleString()} requests
+          {formatInteger(DEMO_USED)} / {formatInteger(REQUEST_LIMIT)} requests
         </span>
         <p className="mt-1 text-xs text-white/70">Request usage is a demo placeholder.</p>
       </div>

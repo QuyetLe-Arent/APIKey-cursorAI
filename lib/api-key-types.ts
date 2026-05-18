@@ -8,6 +8,7 @@ export type ApiKeyRow = {
   created_at: string;
   last_used_at: string | null;
   revoked_at: string | null;
+  usage_limit: number;
 };
 
 /** Client payload right after creation (includes the full secret once). */
@@ -17,6 +18,7 @@ export type ApiKeyCreatedResponse = {
   key: string;
   key_prefix: string;
   created_at: string;
+  usage_limit: number;
 };
 
 /** List view for keys (no secret material). */

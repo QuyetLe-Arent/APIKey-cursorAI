@@ -6,11 +6,17 @@ import type {
 } from "./api-key-types";
 import { getServiceSupabase } from "./supabase/server";
 
+export const DEFAULT_USAGE_LIMIT = 1000;
+
+const API_KEY_LIST_COLUMNS =
+  "id, user_id, name, key_prefix, created_at, last_used_at, revoked_at";
+
 export type InsertApiKeyInput = {
   userId: string;
   name: string;
   keyPrefix: string;
   keyHash: string;
+  usageLimit: number;
 };
 
 type InsertedRow = {
@@ -18,27 +24,62 @@ type InsertedRow = {
   name: string;
   key_prefix: string;
   created_at: string;
+  usage_limit: number;
 };
+
+function isUsageLimitColumnMissing(error: { message?: string; code?: string }): boolean {
+  const msg = (error.message ?? "").toLowerCase();
+  const code = error.code ?? "";
+  if (code === "42703" || code === "PGRST204") return true;
+  return (
+    msg.includes("usage_limit") &&
+    (msg.includes("does not exist") ||
+      msg.includes("could not find") ||
+      msg.includes("schema cache"))
+  );
+}
+
+function withUsageLimit(row: Record<string, unknown>, fallback: number): ApiKeyListItem {
+  const base = row as unknown as Omit<ApiKeyListItem, "usage_limit">;
+  const limit = row.usage_limit;
+  return {
+    ...base,
+    usage_limit: typeof limit === "number" ? limit : fallback,
+  };
+}
 
 /**
  * Insert a new key row (metadata + hash). The caller keeps `fullKey` and must expose it to the user only once.
+ * Works before and after `usage_limit` migration (falls back when the column is missing).
  */
 export async function insertApiKey(
   input: InsertApiKeyInput,
 ): Promise<InsertedRow> {
   const supabase = getServiceSupabase();
   const name = input.name.trim();
+  const baseRow = {
+    user_id: input.userId,
+    name,
+    key_prefix: input.keyPrefix,
+    key_hash: input.keyHash,
+  };
 
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("api_keys")
-    .insert({
-      user_id: input.userId,
-      name,
-      key_prefix: input.keyPrefix,
-      key_hash: input.keyHash,
-    })
-    .select("id, name, key_prefix, created_at")
+    .insert({ ...baseRow, usage_limit: input.usageLimit })
+    .select("id, name, key_prefix, created_at, usage_limit")
     .single();
+
+  if (error && isUsageLimitColumnMissing(error)) {
+    ({ data, error } = await supabase
+      .from("api_keys")
+      .insert(baseRow)
+      .select("id, name, key_prefix, created_at")
+      .single());
+    if (!error && data) {
+      return { ...(data as Omit<InsertedRow, "usage_limit">), usage_limit: input.usageLimit };
+    }
+  }
 
   if (error) {
     throw new Error(`insertApiKey: ${error.message}`);
@@ -47,7 +88,14 @@ export async function insertApiKey(
     throw new Error("insertApiKey: no row returned");
   }
 
-  return data as InsertedRow;
+  const row = data as { usage_limit?: number } & Omit<InsertedRow, "usage_limit">;
+  return {
+    id: row.id,
+    name: row.name,
+    key_prefix: row.key_prefix,
+    created_at: row.created_at,
+    usage_limit: row.usage_limit ?? input.usageLimit,
+  };
 }
 
 export function toCreatedResponse(
@@ -60,6 +108,7 @@ export function toCreatedResponse(
     key: fullKey,
     key_prefix: row.key_prefix,
     created_at: row.created_at,
+    usage_limit: row.usage_limit,
   };
 }
 
@@ -69,19 +118,29 @@ export async function listApiKeysForUser(
 ): Promise<ApiKeyListItem[]> {
   const supabase = getServiceSupabase();
 
-  const { data, error } = await supabase
+  const withLimit = await supabase
     .from("api_keys")
-    .select(
-      "id, user_id, name, key_prefix, created_at, last_used_at, revoked_at",
-    )
+    .select(`${API_KEY_LIST_COLUMNS}, usage_limit`)
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
 
-  if (error) {
-    throw new Error(`listApiKeysForUser: ${error.message}`);
+  if (withLimit.error && isUsageLimitColumnMissing(withLimit.error)) {
+    const withoutLimit = await supabase
+      .from("api_keys")
+      .select(API_KEY_LIST_COLUMNS)
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+    if (withoutLimit.error) {
+      throw new Error(`listApiKeysForUser: ${withoutLimit.error.message}`);
+    }
+    return (withoutLimit.data ?? []).map((row) => withUsageLimit(row, DEFAULT_USAGE_LIMIT));
   }
 
-  return (data ?? []) as ApiKeyListItem[];
+  if (withLimit.error) {
+    throw new Error(`listApiKeysForUser: ${withLimit.error.message}`);
+  }
+
+  return (withLimit.data ?? []).map((row) => withUsageLimit(row, DEFAULT_USAGE_LIMIT));
 }
 
 /** Set `revoked_at` if the key belongs to the user and is not already revoked. Returns `true` if a row was updated. */
@@ -117,21 +176,33 @@ export async function updateApiKeyNameForUser(
   const supabase = getServiceSupabase();
   const trimmed = name.trim();
 
-  const { data, error } = await supabase
+  const withLimit = await supabase
     .from("api_keys")
     .update({ name: trimmed })
     .eq("id", keyId)
     .eq("user_id", userId)
-    .select(
-      "id, user_id, name, key_prefix, created_at, last_used_at, revoked_at",
-    )
+    .select(`${API_KEY_LIST_COLUMNS}, usage_limit`)
     .maybeSingle();
 
-  if (error) {
-    throw new Error(`updateApiKeyNameForUser: ${error.message}`);
+  if (withLimit.error && isUsageLimitColumnMissing(withLimit.error)) {
+    const withoutLimit = await supabase
+      .from("api_keys")
+      .update({ name: trimmed })
+      .eq("id", keyId)
+      .eq("user_id", userId)
+      .select(API_KEY_LIST_COLUMNS)
+      .maybeSingle();
+    if (withoutLimit.error) {
+      throw new Error(`updateApiKeyNameForUser: ${withoutLimit.error.message}`);
+    }
+    return withoutLimit.data ? withUsageLimit(withoutLimit.data, DEFAULT_USAGE_LIMIT) : null;
   }
 
-  return (data as ApiKeyListItem | null) ?? null;
+  if (withLimit.error) {
+    throw new Error(`updateApiKeyNameForUser: ${withLimit.error.message}`);
+  }
+
+  return withLimit.data ? withUsageLimit(withLimit.data, DEFAULT_USAGE_LIMIT) : null;
 }
 
 /** Hard-delete a row when `user_id` matches. Returns `true` if at least one row was deleted. */

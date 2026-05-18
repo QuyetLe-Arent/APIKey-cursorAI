@@ -73,16 +73,17 @@ export async function listApiKeys(): Promise<ApiKeysClientResult<ApiKeyListItem[
   return result;
 }
 
-/** POST /api/keys — body `{ name?: string }`. */
+/** POST /api/keys — body `{ name?: string, limit?: number }`. */
 export async function createApiKey(
   name: string,
+  limit: number,
 ): Promise<ApiKeysClientResult<ApiKeyCreatedResponse>> {
   return request<ApiKeyCreatedResponse>(
     "/api/keys",
     {
       method: "POST",
       headers: JSON_HEADERS,
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({ name, limit }),
     },
     "Failed to create API key",
   );

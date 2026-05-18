@@ -62,10 +62,10 @@ export function useApiKeys() {
   }, [loadKeys, notify]);
 
   const createKey = useCallback(
-    async (name: string) => {
+    async (name: string, limit: number) => {
       setCreating(true);
       try {
-        const result = await createApiKey(name);
+        const result = await createApiKey(name, limit);
         if (!result.ok) {
           notify(result.message, "error");
           return;

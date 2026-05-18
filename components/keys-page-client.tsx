@@ -57,7 +57,7 @@ function KeysPageContent({ email, userId }: KeysPageClientProps) {
         isOpen={api.isCreateOpen}
         creating={api.creating}
         onClose={() => api.setIsCreateOpen(false)}
-        onCreate={(name) => void api.createKey(name)}
+        onCreate={(name, limit) => void api.createKey(name, limit)}
       />
 
       <EditApiKeyModal

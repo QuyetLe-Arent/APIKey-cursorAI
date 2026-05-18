@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 
+const DEFAULT_LIMIT = 1000;
+
 type CreateApiKeyModalProps = {
   isOpen: boolean;
   creating: boolean;
   onClose: () => void;
-  onCreate: (name: string) => void;
+  onCreate: (name: string, limit: number) => void;
 };
 
 export function CreateApiKeyModal({
@@ -16,16 +18,20 @@ export function CreateApiKeyModal({
   onCreate,
 }: CreateApiKeyModalProps) {
   const [name, setName] = useState("");
+  const [limit, setLimit] = useState(DEFAULT_LIMIT);
 
   useEffect(() => {
-    if (!isOpen) setName("");
+    if (!isOpen) {
+      setName("");
+      setLimit(DEFAULT_LIMIT);
+    }
   }, [isOpen]);
 
   if (!isOpen) return null;
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    onCreate(name.trim());
+    onCreate(name.trim(), limit);
   }
 
   return (
@@ -36,42 +42,59 @@ export function CreateApiKeyModal({
         aria-labelledby="create-key-title"
         className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-700 dark:bg-zinc-900"
       >
-        <h3 id="create-key-title" className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-          Create a new API key
-        </h3>
-        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-          Enter a label for the key. The full secret is shown only once after creation.
+        <h2 id="create-key-title" className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+          Create API Key
+        </h2>
+        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+          Name your key and set a usage limit. The full secret is shown once after creation.
         </p>
         <form onSubmit={handleSubmit} className="mt-5 space-y-4">
           <div>
-            <label
-              htmlFor="modal-key-name"
-              className="block text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400"
-            >
-              Label (optional)
+            <label htmlFor="create-key-name" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              Name
             </label>
             <input
-              id="modal-key-name"
+              id="create-key-name"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. production, dev laptop"
-              maxLength={200}
-              className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+              placeholder="e.g. Production"
+              className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-50"
             />
           </div>
-          <div className="flex justify-end gap-2">
+          <div>
+            <label htmlFor="create-key-limit" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              Usage limit
+            </label>
+            <input
+              id="create-key-limit"
+              type="number"
+              min={1}
+              max={1000000}
+              value={limit}
+              onChange={(e) => {
+                const parsed = Number.parseInt(e.target.value, 10);
+                setLimit(Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_LIMIT);
+              }}
+              className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-50"
+            />
+            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+              Maximum number of requests allowed for this key (default {DEFAULT_LIMIT}).
+            </p>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
+              disabled={creating}
+              className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={creating}
-              className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
+              className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
             >
               {creating ? "Creating…" : "Create"}
             </button>

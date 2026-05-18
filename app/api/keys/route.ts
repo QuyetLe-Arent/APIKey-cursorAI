@@ -1,6 +1,7 @@
 import { requireSessionUserId } from "@/lib/api-route-auth";
 import { generateApiKey } from "@/lib/api-key";
 import {
+  DEFAULT_USAGE_LIMIT,
   insertApiKey,
   listApiKeysForUser,
   toCreatedResponse,
@@ -9,6 +10,19 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { NextResponse } from "next/server";
 
 const MAX_NAME_LENGTH = 200;
+const MAX_USAGE_LIMIT = 1_000_000;
+
+function parseUsageLimit(value: unknown): number | null {
+  if (value === undefined || value === null) return null;
+  const n =
+    typeof value === "string"
+      ? Number.parseInt(value, 10)
+      : typeof value === "number"
+        ? value
+        : NaN;
+  if (!Number.isFinite(n) || !Number.isInteger(n)) return null;
+  return n;
+}
 
 /** List: per authenticated user, per rolling minute. */
 const GET_LIMIT = 120;
@@ -56,13 +70,27 @@ export async function POST(request: Request) {
   if (!rl.ok) return tooManyRequests(rl.retryAfterMs);
 
   let name = "";
+  let usageLimit = DEFAULT_USAGE_LIMIT;
   try {
-    const body = (await request.json()) as { name?: unknown };
+    const body = (await request.json()) as { name?: unknown; limit?: unknown };
     if (body.name !== undefined && body.name !== null) {
       if (typeof body.name !== "string") {
         return NextResponse.json({ error: "name must be a string" }, { status: 400 });
       }
       name = body.name.trim().slice(0, MAX_NAME_LENGTH);
+    }
+    const parsedLimit = parseUsageLimit(body.limit);
+    if (body.limit !== undefined && body.limit !== null) {
+      if (parsedLimit === null) {
+        return NextResponse.json({ error: "limit must be an integer" }, { status: 400 });
+      }
+      if (parsedLimit < 1 || parsedLimit > MAX_USAGE_LIMIT) {
+        return NextResponse.json(
+          { error: `limit must be between 1 and ${MAX_USAGE_LIMIT}` },
+          { status: 400 },
+        );
+      }
+      usageLimit = parsedLimit;
     }
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
@@ -75,6 +103,7 @@ export async function POST(request: Request) {
       name,
       keyPrefix: generated.keyPrefix,
       keyHash: generated.keyHash,
+      usageLimit,
     });
     const payload = toCreatedResponse(row, generated.fullKey);
     return NextResponse.json(payload, { status: 201 });

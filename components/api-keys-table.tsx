@@ -22,10 +22,10 @@ export function ApiKeysTable({
   return (
     <div className="overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-sm ring-1 ring-zinc-900/[0.04] dark:border-zinc-800 dark:bg-zinc-950 dark:ring-white/[0.06]">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] text-left text-sm">
+        <table className="w-full min-w-[840px] text-left text-sm">
           <thead className="border-b border-zinc-200 bg-zinc-50/90 dark:border-zinc-800 dark:bg-zinc-900/90">
             <tr>
-              {["Label", "Prefix", "Last used", "Created", "Status", "Actions"].map((h) => (
+              {["Label", "Prefix", "Usage", "Last used", "Created", "Status", "Actions"].map((h) => (
                 <th
                   key={h}
                   className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400"
@@ -47,6 +47,9 @@ export function ApiKeysTable({
                   <td className="px-4 py-3.5 font-medium">{row.name || "—"}</td>
                   <td className="px-4 py-3.5 font-mono text-xs text-zinc-600 dark:text-zinc-400">
                     {row.key_prefix}
+                  </td>
+                  <td className="px-4 py-3.5 text-zinc-600 dark:text-zinc-400">
+                    0 / {row.usage_limit?.toLocaleString() ?? "—"}
                   </td>
                   <td className="px-4 py-3.5 text-zinc-600 dark:text-zinc-400">
                     {row.last_used_at

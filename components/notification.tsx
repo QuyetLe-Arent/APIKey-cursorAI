@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export type NotificationType = "success" | "error";
 
@@ -18,14 +18,17 @@ export function Notification({
   onClose,
 }: NotificationProps) {
   const [visible, setVisible] = useState(true);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
+    setVisible(true);
     const timer = setTimeout(() => {
       setVisible(false);
-      onClose();
+      onCloseRef.current();
     }, duration);
     return () => clearTimeout(timer);
-  }, [duration, onClose]);
+  }, [message, type, duration]);
 
   if (!visible) return null;
 
@@ -37,6 +40,7 @@ export function Notification({
   return (
     <div
       role="status"
+      aria-live="polite"
       className={`fixed top-4 left-1/2 z-[100] flex max-w-md -translate-x-1/2 items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium text-white shadow-lg ${bg}`}
     >
       {type === "success" ? (
@@ -64,7 +68,7 @@ export function Notification({
         type="button"
         onClick={() => {
           setVisible(false);
-          onClose();
+          onCloseRef.current();
         }}
         className="rounded p-0.5 opacity-80 hover:opacity-100"
         aria-label="Dismiss"

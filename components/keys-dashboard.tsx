@@ -4,7 +4,7 @@ import { ApiKeysTable } from "@/components/api-keys-table";
 import { CreateApiKeyModal } from "@/components/create-api-key-modal";
 import { EditApiKeyModal } from "@/components/edit-api-key-modal";
 import { NewKeySecretModal } from "@/components/new-key-secret-modal";
-import { Notification, type NotificationType } from "@/components/notification";
+import { useNotify } from "@/components/notification-context";
 import type { ApiKeyCreatedResponse, ApiKeyListItem } from "@/lib/api-key-types";
 import { useCallback, useEffect, useState } from "react";
 
@@ -24,27 +24,25 @@ export function KeysDashboard() {
   const [creating, setCreating] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [notification, setNotification] = useState<{
-    message: string;
-    type: NotificationType;
-  } | null>(null);
+  const notify = useNotify();
 
-  const notify = useCallback((message: string, type: NotificationType = "success") => {
-    setNotification({ message, type });
-  }, []);
-
-  const loadKeys = useCallback(async () => {
+  const loadKeys = useCallback(async (): Promise<boolean> => {
     const res = await fetch("/api/keys", { credentials: "include" });
     if (!res.ok) {
       const body = (await parseJson<{ error?: string }>(res).catch(() => ({}))) as {
         error?: string;
       };
-      notify(body.error ?? `Failed to load keys (${res.status})`, "error");
+      const msg =
+        res.status === 429
+          ? "Too many requests — try again shortly"
+          : (body.error ?? `Failed to load keys (${res.status})`);
+      notify(msg, "error");
       setKeys([]);
-      return;
+      return false;
     }
     const data = (await res.json()) as ApiKeyListItem[];
     setKeys(Array.isArray(data) ? data : []);
+    return true;
   }, [notify]);
 
   useEffect(() => {
@@ -173,14 +171,6 @@ export function KeysDashboard() {
 
   return (
     <>
-      {notification && (
-        <Notification
-          message={notification.message}
-          type={notification.type}
-          onClose={() => setNotification(null)}
-        />
-      )}
-
       <section>
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -202,7 +192,11 @@ export function KeysDashboard() {
         <div className="mb-4 flex justify-end">
           <button
             type="button"
-            onClick={() => void loadKeys().then(() => notify("List refreshed"))}
+            onClick={() =>
+              void loadKeys().then((ok) => {
+                if (ok) notify("List refreshed");
+              })
+            }
             className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 shadow-sm hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
           >
             Refresh

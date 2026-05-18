@@ -1,6 +1,9 @@
 "use client";
 
+import { useNotify } from "@/components/notification-context";
+
 export function PlanOverviewCard() {
+  const notify = useNotify();
   const used = 24;
   const limit = 1000;
   const pct = Math.min(100, (used / limit) * 100);
@@ -13,9 +16,8 @@ export function PlanOverviewCard() {
         </span>
         <button
           type="button"
-          disabled
-          title="Coming soon"
-          className="w-fit rounded-lg bg-white/20 px-3 py-1 text-xs font-medium text-white/90"
+          onClick={() => notify("Plan management is coming soon")}
+          className="w-fit rounded-lg bg-white/20 px-3 py-1 text-xs font-medium text-white/90 transition hover:bg-white/30"
         >
           Manage plan
         </button>

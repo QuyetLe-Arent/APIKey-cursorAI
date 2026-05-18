@@ -108,6 +108,32 @@ export async function revokeApiKeyForUser(
   return data !== null;
 }
 
+/** Update key label for a user-owned row. Returns updated row or null if not found. */
+export async function updateApiKeyNameForUser(
+  userId: string,
+  keyId: string,
+  name: string,
+): Promise<ApiKeyListItem | null> {
+  const supabase = getServiceSupabase();
+  const trimmed = name.trim();
+
+  const { data, error } = await supabase
+    .from("api_keys")
+    .update({ name: trimmed })
+    .eq("id", keyId)
+    .eq("user_id", userId)
+    .select(
+      "id, user_id, name, key_prefix, created_at, last_used_at, revoked_at",
+    )
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`updateApiKeyNameForUser: ${error.message}`);
+  }
+
+  return (data as ApiKeyListItem | null) ?? null;
+}
+
 /** Hard-delete a row when `user_id` matches. Returns `true` if at least one row was deleted. */
 export async function deleteApiKeyForUser(
   userId: string,

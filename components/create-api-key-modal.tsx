@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type CreateApiKeyModalProps = {
   isOpen: boolean;
@@ -17,12 +17,15 @@ export function CreateApiKeyModal({
 }: CreateApiKeyModalProps) {
   const [name, setName] = useState("");
 
+  useEffect(() => {
+    if (!isOpen) setName("");
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     onCreate(name.trim());
-    setName("");
   }
 
   return (

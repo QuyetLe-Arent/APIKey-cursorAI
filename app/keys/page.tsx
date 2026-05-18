@@ -1,7 +1,4 @@
-import { DashboardLayout } from "@/components/dashboard-layout";
-import { DashboardOverview } from "@/components/dashboard-overview";
-import { KeysDashboard } from "@/components/keys-dashboard";
-import { PlanOverviewCard } from "@/components/plan-overview-card";
+import { KeysPageClient } from "@/components/keys-page-client";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 
@@ -13,19 +10,5 @@ export default async function KeysPage() {
 
   const email = session.user.email ?? session.user.name ?? "—";
 
-  return (
-    <DashboardLayout>
-      <DashboardOverview email={email} />
-      <PlanOverviewCard />
-      <details className="rounded-xl border border-zinc-200/90 bg-white/90 px-4 py-3 text-xs text-zinc-600 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-400">
-        <summary className="cursor-pointer font-medium text-zinc-700 dark:text-zinc-300">
-          Technical: user_id (Supabase)
-        </summary>
-        <p className="mt-2 font-mono text-[11px] leading-relaxed break-all text-zinc-800 dark:text-zinc-300">
-          {session.user.id}
-        </p>
-      </details>
-      <KeysDashboard />
-    </DashboardLayout>
-  );
+  return <KeysPageClient email={email} userId={session.user.id} />;
 }

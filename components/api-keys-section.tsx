@@ -8,6 +8,7 @@ import type { ApiKeyListItem } from "@/lib/api-key-types";
 type ApiKeysSectionProps = {
   keys: ApiKeyListItem[];
   loading: boolean;
+  refreshing?: boolean;
   busyId: string | null;
   onCreateClick: () => void;
   onRefresh: () => void;
@@ -20,6 +21,7 @@ type ApiKeysSectionProps = {
 export function ApiKeysSection({
   keys,
   loading,
+  refreshing = false,
   busyId,
   onCreateClick,
   onRefresh,
@@ -51,9 +53,10 @@ export function ApiKeysSection({
         <button
           type="button"
           onClick={onRefresh}
-          className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 shadow-sm transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800"
+          disabled={loading || refreshing}
+          className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 shadow-sm transition hover:border-zinc-300 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-zinc-500" aria-hidden>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className={`text-zinc-500 ${refreshing ? "animate-spin" : ""}`} aria-hidden>
             <path
               d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
               stroke="currentColor"
@@ -62,7 +65,7 @@ export function ApiKeysSection({
               strokeLinejoin="round"
             />
           </svg>
-          Refresh
+          {refreshing ? "Refreshing…" : "Refresh"}
         </button>
       </div>
 

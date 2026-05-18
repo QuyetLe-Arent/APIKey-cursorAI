@@ -1,34 +1,18 @@
 "use client";
 
 import { useNotify } from "@/components/notification-context";
-import { useEffect, useState } from "react";
 
 const REQUEST_LIMIT = 1000;
+const DEMO_USED = 24;
 
-export function PlanOverviewCard() {
+type PlanOverviewCardProps = {
+  activeKeyCount: number;
+  keysLoading?: boolean;
+};
+
+export function PlanOverviewCard({ activeKeyCount, keysLoading }: PlanOverviewCardProps) {
   const notify = useNotify();
-  const [activeKeys, setActiveKeys] = useState<number | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/keys", { credentials: "include" });
-        if (!res.ok || cancelled) return;
-        const data = (await res.json()) as { revoked_at?: string | null }[];
-        if (!Array.isArray(data) || cancelled) return;
-        setActiveKeys(data.filter((k) => !k.revoked_at).length);
-      } catch {
-        /* placeholder usage stays static */
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const used = 24;
-  const pct = Math.min(100, (used / REQUEST_LIMIT) * 100);
+  const pct = Math.min(100, (DEMO_USED / REQUEST_LIMIT) * 100);
 
   return (
     <section className="overflow-hidden rounded-2xl bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 p-6 text-white shadow-lg shadow-purple-900/20 sm:p-7">
@@ -47,11 +31,11 @@ export function PlanOverviewCard() {
 
       <h2 className="mt-4 text-2xl font-bold tracking-tight sm:text-3xl">API Key Manager</h2>
 
-      {activeKeys !== null && (
-        <p className="mt-2 text-sm text-white/85">
-          {activeKeys} active {activeKeys === 1 ? "key" : "keys"} on your account
-        </p>
-      )}
+      <p className="mt-2 text-sm text-white/85">
+        {keysLoading
+          ? "Loading keys…"
+          : `${activeKeyCount} active ${activeKeyCount === 1 ? "key" : "keys"} on your account`}
+      </p>
 
       <div className="mt-5">
         <span className="text-xs font-medium uppercase tracking-wide text-white/80">
@@ -64,9 +48,9 @@ export function PlanOverviewCard() {
           />
         </div>
         <span className="mt-2 inline-block text-sm font-medium text-white/95">
-          {used.toLocaleString()} / {REQUEST_LIMIT.toLocaleString()} requests
+          {DEMO_USED.toLocaleString()} / {REQUEST_LIMIT.toLocaleString()} requests
         </span>
-        <p className="mt-1 text-xs text-white/70">Usage shown is a demo placeholder.</p>
+        <p className="mt-1 text-xs text-white/70">Request usage is a demo placeholder.</p>
       </div>
     </section>
   );

@@ -23,6 +23,16 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 3. **Auth (Google):** `AUTH_SECRET`, `AUTH_URL` (e.g. `http://localhost:3000`), `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` — OAuth redirect URI must include `http://localhost:3000/api/auth/callback/google`.
 4. Sign in, open **`/keys`** to create and manage keys.
 
+### Dashboard checklist (`/keys`)
+
+| Action | Expected |
+|--------|----------|
+| Create key | Modal → one-time secret → copy → key appears in table (prefix only) |
+| Edit label | Edit modal → save → name updates |
+| Revoke | Status becomes Revoked; Revoke disabled |
+| Delete | Row removed; toast confirmation |
+| Refresh | List reloads; toast on success |
+
 **Rate limiting:** `POST/GET /api/keys` and `PATCH/DELETE /api/keys/[id]` use an **in-memory** fixed window per user (fine for dev/small deploys). For production at scale, prefer **Upstash Redis** (or similar) shared across instances.
 
 ## Learn More

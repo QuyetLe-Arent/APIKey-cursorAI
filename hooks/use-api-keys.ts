@@ -2,13 +2,21 @@
 
 import { useNotify } from "@/components/notification-context";
 import type { ApiKeyCreatedResponse, ApiKeyListItem } from "@/lib/api-key-types";
-import { parseApiJson } from "@/lib/parse-api-response";
+import {
+  createApiKey,
+  deleteApiKey,
+  isValidCreatedKey,
+  listApiKeys,
+  renameApiKey,
+  revokeApiKey,
+} from "@/lib/api-keys-client";
 import { useCallback, useEffect, useState } from "react";
 
 export function useApiKeys() {
   const notify = useNotify();
   const [keys, setKeys] = useState<ApiKeyListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [newKey, setNewKey] = useState<ApiKeyCreatedResponse | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -18,21 +26,16 @@ export function useApiKeys() {
   const [copied, setCopied] = useState(false);
 
   const loadKeys = useCallback(async (): Promise<boolean> => {
-    const res = await fetch("/api/keys", { credentials: "include" });
-    if (!res.ok) {
-      const body = (await parseApiJson<{ error?: string }>(res).catch(() => ({}))) as {
-        error?: string;
-      };
-      const msg =
-        res.status === 429
-          ? "Too many requests — try again shortly"
-          : (body.error ?? `Failed to load keys (${res.status})`);
-      notify(msg, "error");
+    const result = await listApiKeys();
+    if (!result.ok) {
+      notify(result.message, "error");
+      if (result.status === 401) {
+        window.location.href = "/login?callbackUrl=/keys";
+      }
       setKeys([]);
       return false;
     }
-    const data = (await res.json()) as ApiKeyListItem[];
-    setKeys(Array.isArray(data) ? data : []);
+    setKeys(result.data);
     return true;
   }, [notify]);
 
@@ -49,27 +52,30 @@ export function useApiKeys() {
   }, [loadKeys]);
 
   const refresh = useCallback(async () => {
-    const ok = await loadKeys();
-    if (ok) notify("List refreshed");
+    setRefreshing(true);
+    try {
+      const ok = await loadKeys();
+      if (ok) notify("List refreshed");
+    } finally {
+      setRefreshing(false);
+    }
   }, [loadKeys, notify]);
 
   const createKey = useCallback(
     async (name: string) => {
       setCreating(true);
       try {
-        const res = await fetch("/api/keys", {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name }),
-        });
-        const body = await parseApiJson<ApiKeyCreatedResponse & { error?: string }>(res);
-        if (!res.ok) {
-          notify(body.error ?? "Create failed", "error");
+        const result = await createApiKey(name);
+        if (!result.ok) {
+          notify(result.message, "error");
+          return;
+        }
+        if (!isValidCreatedKey(result.data)) {
+          notify("Server response missing key secret", "error");
           return;
         }
         setIsCreateOpen(false);
-        setNewKey(body);
+        setNewKey(result.data);
         notify("API key created successfully");
         await loadKeys();
       } finally {
@@ -83,15 +89,9 @@ export function useApiKeys() {
     async (key: ApiKeyListItem) => {
       setSavingEdit(true);
       try {
-        const res = await fetch(`/api/keys/${key.id}`, {
-          method: "PATCH",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "rename", name: key.name }),
-        });
-        const body = await parseApiJson<ApiKeyListItem & { error?: string }>(res);
-        if (!res.ok) {
-          notify(body.error ?? "Update failed", "error");
+        const result = await renameApiKey(key.id, key.name);
+        if (!result.ok) {
+          notify(result.message, "error");
           return;
         }
         setEditingKey(null);
@@ -109,17 +109,9 @@ export function useApiKeys() {
       if (!window.confirm("Revoke this key? It cannot be used after revoke.")) return;
       setBusyId(id);
       try {
-        const res = await fetch(`/api/keys/${id}`, {
-          method: "PATCH",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "revoke" }),
-        });
-        if (!res.ok) {
-          const body = (await parseApiJson<{ error?: string }>(res).catch(() => ({}))) as {
-            error?: string;
-          };
-          notify(body.error ?? "Revoke failed", "error");
+        const result = await revokeApiKey(id);
+        if (!result.ok) {
+          notify(result.message, "error");
           return;
         }
         notify("API key revoked");
@@ -131,20 +123,14 @@ export function useApiKeys() {
     [loadKeys, notify],
   );
 
-  const deleteKey = useCallback(
+  const deleteKeyHandler = useCallback(
     async (id: string) => {
       if (!window.confirm("Delete this key permanently?")) return;
       setBusyId(id);
       try {
-        const res = await fetch(`/api/keys/${id}`, {
-          method: "DELETE",
-          credentials: "include",
-        });
-        if (!res.ok && res.status !== 204) {
-          const body = (await parseApiJson<{ error?: string }>(res).catch(() => ({}))) as {
-            error?: string;
-          };
-          notify(body.error ?? "Delete failed", "error");
+        const result = await deleteApiKey(id);
+        if (!result.ok) {
+          notify(result.message, "error");
           return;
         }
         notify("API key deleted");
@@ -156,12 +142,13 @@ export function useApiKeys() {
     [loadKeys, notify],
   );
 
+  /** Full secret copy — only used from the one-time secret modal (Part 5.3). */
   const copyNewKey = useCallback(async () => {
     if (!newKey?.key) return;
     try {
       await navigator.clipboard.writeText(newKey.key);
       setCopied(true);
-      notify("Copied API key to clipboard");
+      notify("Copied to clipboard");
       setTimeout(() => setCopied(false), 2000);
     } catch {
       notify("Could not copy to clipboard", "error");
@@ -188,6 +175,7 @@ export function useApiKeys() {
   return {
     keys,
     loading,
+    refreshing,
     busyId,
     newKey,
     isCreateOpen,
@@ -201,7 +189,7 @@ export function useApiKeys() {
     createKey,
     updateKey,
     revokeKey,
-    deleteKey,
+    deleteKey: deleteKeyHandler,
     copyNewKey,
     copyPrefix,
     closeNewKeyModal,

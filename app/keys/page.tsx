@@ -10,5 +10,5 @@ export default async function KeysPage() {
 
   const email = session.user.email ?? session.user.name ?? "—";
 
-  return <KeysPageClient email={email} userId={session.user.id} />;
+  return <KeysPageClient email={email} />;
 }

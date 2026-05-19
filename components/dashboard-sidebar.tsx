@@ -145,27 +145,24 @@ export function DashboardSidebar() {
         className={`fixed top-4 z-40 flex size-10 items-center justify-center rounded-full bg-indigo-600 text-white shadow-lg transition-all duration-300 hover:bg-indigo-500 ${
           open ? "left-[15.5rem]" : "left-4"
         }`}
-        aria-label={open ? "Close sidebar" : "Open sidebar"}
+        aria-label={open ? "Collapse sidebar" : "Expand sidebar"}
       >
-        {open ? (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-            <path
-              d="M6 18L18 6M6 6l12 12"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-          </svg>
-        ) : (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-            <path
-              d="M4 6h16M4 12h16M4 18h16"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-          </svg>
-        )}
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden
+          className={`transition-transform duration-300 ${open ? "" : "rotate-180"}`}
+        >
+          <path
+            d="M15 18l-6-6 6-6"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
       </button>
     </>
   );

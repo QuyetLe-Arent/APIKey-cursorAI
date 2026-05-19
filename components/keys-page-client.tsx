@@ -11,19 +11,18 @@ import { useApiKeys } from "@/hooks/use-api-keys";
 
 type KeysPageClientProps = {
   email: string;
-  userId: string;
 };
 
 /** Shell only — must not call useNotify / useApiKeys here (provider is inside DashboardLayout). */
-export function KeysPageClient({ email, userId }: KeysPageClientProps) {
+export function KeysPageClient({ email }: KeysPageClientProps) {
   return (
     <DashboardLayout>
-      <KeysPageContent email={email} userId={userId} />
+      <KeysPageContent email={email} />
     </DashboardLayout>
   );
 }
 
-function KeysPageContent({ email, userId }: KeysPageClientProps) {
+function KeysPageContent({ email }: KeysPageClientProps) {
   const api = useApiKeys();
   const activeKeyCount = api.keys.filter((k) => !k.revoked_at).length;
 
@@ -31,14 +30,6 @@ function KeysPageContent({ email, userId }: KeysPageClientProps) {
     <>
       <DashboardOverview email={email} />
       <PlanOverviewCard activeKeyCount={activeKeyCount} keysLoading={api.loading} />
-      <details className="rounded-xl border border-zinc-200/90 bg-white/90 px-4 py-3 text-xs text-zinc-600 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-400">
-        <summary className="cursor-pointer font-medium text-zinc-700 dark:text-zinc-300">
-          Technical: user_id (Supabase)
-        </summary>
-        <p className="mt-2 font-mono text-[11px] leading-relaxed break-all text-zinc-800 dark:text-zinc-300">
-          {userId}
-        </p>
-      </details>
 
       <ApiKeysSection
         keys={api.keys}

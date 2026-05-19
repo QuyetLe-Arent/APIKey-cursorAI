@@ -3,6 +3,7 @@ import "server-only";
 import type {
   ApiKeyCreatedResponse,
   ApiKeyListItem,
+  ValidatedApiKey,
 } from "./api-key-types";
 import { getServiceSupabase } from "./supabase/server";
 
@@ -27,12 +28,28 @@ type InsertedRow = {
   usage_limit: number;
 };
 
-function isUsageLimitColumnMissing(error: { message?: string; code?: string }): boolean {
+export type ApiKeyVerifyCandidate = {
+  id: string;
+  user_id: string;
+  name: string;
+  key_hash: string;
+  usage_count: number;
+  usage_limit: number;
+};
+
+export type RecordUsageResult =
+  | { ok: true; usage_count: number; usage_limit: number }
+  | { ok: false; reason: "quota_exceeded" };
+
+function isColumnMissing(
+  error: { message?: string; code?: string },
+  column: string,
+): boolean {
   const msg = (error.message ?? "").toLowerCase();
-  const code = error.code ?? "";
-  if (code === "42703" || code === "PGRST204") return true;
+  const col = column.toLowerCase();
+  if (error.code === "42703" || error.code === "PGRST204") return msg.includes(col);
   return (
-    msg.includes("usage_limit") &&
+    msg.includes(col) &&
     (msg.includes("does not exist") ||
       msg.includes("could not find") ||
       msg.includes("schema cache"))
@@ -40,18 +57,161 @@ function isUsageLimitColumnMissing(error: { message?: string; code?: string }): 
 }
 
 function withUsageLimit(row: Record<string, unknown>, fallback: number): ApiKeyListItem {
-  const base = row as unknown as Omit<ApiKeyListItem, "usage_limit">;
+  const base = row as unknown as Omit<ApiKeyListItem, "usage_limit" | "usage_count">;
   const limit = row.usage_limit;
+  const count = row.usage_count;
   return {
     ...base,
     usage_limit: typeof limit === "number" ? limit : fallback,
+    usage_count: typeof count === "number" ? count : 0,
   };
 }
 
-/**
- * Insert a new key row (metadata + hash). The caller keeps `fullKey` and must expose it to the user only once.
- * Works before and after `usage_limit` migration (falls back when the column is missing).
- */
+export function checkUsageQuota(usageCount: number, usageLimit: number): boolean {
+  return usageCount < usageLimit;
+}
+
+/** Active rows sharing a display prefix (for scrypt verify). */
+export async function findActiveKeysByPrefixForVerify(
+  keyPrefix: string,
+): Promise<ApiKeyVerifyCandidate[]> {
+  const supabase = getServiceSupabase();
+
+  const withUsage = await supabase
+    .from("api_keys")
+    .select("id, user_id, name, key_hash, usage_count, usage_limit")
+    .eq("key_prefix", keyPrefix)
+    .is("revoked_at", null);
+
+  if (withUsage.error && isColumnMissing(withUsage.error, "usage_count")) {
+    const withoutCount = await supabase
+      .from("api_keys")
+      .select("id, user_id, name, key_hash, usage_limit")
+      .eq("key_prefix", keyPrefix)
+      .is("revoked_at", null);
+    if (withoutCount.error && isColumnMissing(withoutCount.error, "usage_limit")) {
+      const base = await supabase
+        .from("api_keys")
+        .select("id, user_id, name, key_hash")
+        .eq("key_prefix", keyPrefix)
+        .is("revoked_at", null);
+      if (base.error) {
+        throw new Error(`findActiveKeysByPrefixForVerify: ${base.error.message}`);
+      }
+      return (base.data ?? []).map((row) => ({
+        ...(row as Omit<ApiKeyVerifyCandidate, "usage_count" | "usage_limit">),
+        usage_count: 0,
+        usage_limit: DEFAULT_USAGE_LIMIT,
+      }));
+    }
+    if (withoutCount.error) {
+      throw new Error(`findActiveKeysByPrefixForVerify: ${withoutCount.error.message}`);
+    }
+    return (withoutCount.data ?? []).map((row) => ({
+      ...(row as Omit<ApiKeyVerifyCandidate, "usage_count">),
+      usage_count: 0,
+      usage_limit:
+        typeof (row as { usage_limit?: number }).usage_limit === "number"
+          ? (row as { usage_limit: number }).usage_limit
+          : DEFAULT_USAGE_LIMIT,
+    }));
+  }
+
+  if (withUsage.error) {
+    throw new Error(`findActiveKeysByPrefixForVerify: ${withUsage.error.message}`);
+  }
+
+  return (withUsage.data ?? []).map((row) => {
+    const r = row as {
+      id: string;
+      user_id: string;
+      name: string;
+      key_hash: string;
+      usage_count?: number;
+      usage_limit?: number;
+    };
+    return {
+      id: r.id,
+      user_id: r.user_id,
+      name: r.name,
+      key_hash: r.key_hash,
+      usage_count: r.usage_count ?? 0,
+      usage_limit: r.usage_limit ?? DEFAULT_USAGE_LIMIT,
+    };
+  });
+}
+
+export function toValidatedApiKey(candidate: ApiKeyVerifyCandidate): ValidatedApiKey {
+  return {
+    id: candidate.id,
+    user_id: candidate.user_id,
+    name: candidate.name,
+    usage_count: candidate.usage_count,
+    usage_limit: candidate.usage_limit,
+  };
+}
+
+/** Increment usage if under quota; always updates `last_used_at` on success. */
+export async function recordApiKeyUsage(keyId: string): Promise<RecordUsageResult> {
+  const supabase = getServiceSupabase();
+
+  const current = await supabase
+    .from("api_keys")
+    .select("usage_count, usage_limit")
+    .eq("id", keyId)
+    .is("revoked_at", null)
+    .maybeSingle();
+
+  if (current.error && isColumnMissing(current.error, "usage_count")) {
+    const fallback = await supabase
+      .from("api_keys")
+      .select("usage_limit")
+      .eq("id", keyId)
+      .is("revoked_at", null)
+      .maybeSingle();
+    if (fallback.error || !fallback.data) {
+      return { ok: false, reason: "quota_exceeded" };
+    }
+    const limit =
+      typeof (fallback.data as { usage_limit?: number }).usage_limit === "number"
+        ? (fallback.data as { usage_limit: number }).usage_limit
+        : DEFAULT_USAGE_LIMIT;
+    await supabase
+      .from("api_keys")
+      .update({ last_used_at: new Date().toISOString() })
+      .eq("id", keyId);
+    return { ok: true, usage_count: 1, usage_limit: limit };
+  }
+
+  if (current.error || !current.data) {
+    return { ok: false, reason: "quota_exceeded" };
+  }
+
+  const row = current.data as { usage_count: number; usage_limit: number };
+  const usage_limit = row.usage_limit ?? DEFAULT_USAGE_LIMIT;
+  const usage_count = row.usage_count ?? 0;
+
+  if (!checkUsageQuota(usage_count, usage_limit)) {
+    return { ok: false, reason: "quota_exceeded" };
+  }
+
+  const nextCount = usage_count + 1;
+  const { error } = await supabase
+    .from("api_keys")
+    .update({
+      usage_count: nextCount,
+      last_used_at: new Date().toISOString(),
+    })
+    .eq("id", keyId)
+    .is("revoked_at", null);
+
+  if (error) {
+    throw new Error(`recordApiKeyUsage: ${error.message}`);
+  }
+
+  return { ok: true, usage_count: nextCount, usage_limit };
+}
+
 export async function insertApiKey(
   input: InsertApiKeyInput,
 ): Promise<InsertedRow> {
@@ -70,7 +230,7 @@ export async function insertApiKey(
     .select("id, name, key_prefix, created_at, usage_limit")
     .single();
 
-  if (error && isUsageLimitColumnMissing(error)) {
+  if (error && isColumnMissing(error, "usage_limit")) {
     ({ data, error } = await supabase
       .from("api_keys")
       .insert(baseRow)
@@ -112,22 +272,44 @@ export function toCreatedResponse(
   };
 }
 
-/** List keys for a user (excludes `key_hash`). */
 export async function listApiKeysForUser(
   userId: string,
 ): Promise<ApiKeyListItem[]> {
   const supabase = getServiceSupabase();
 
-  const withLimit = await supabase
+  const withUsage = await supabase
     .from("api_keys")
-    .select(`${API_KEY_LIST_COLUMNS}, usage_limit`)
+    .select(`${API_KEY_LIST_COLUMNS}, usage_limit, usage_count`)
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
 
-  if (withLimit.error && isUsageLimitColumnMissing(withLimit.error)) {
+  if (withUsage.error && isColumnMissing(withUsage.error, "usage_count")) {
+    const withLimitOnly = await supabase
+      .from("api_keys")
+      .select(`${API_KEY_LIST_COLUMNS}, usage_limit`)
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+    if (withLimitOnly.error && isColumnMissing(withLimitOnly.error, "usage_limit")) {
+      const without = await supabase
+        .from("api_keys")
+        .select(API_KEY_LIST_COLUMNS)
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+      if (without.error) {
+        throw new Error(`listApiKeysForUser: ${without.error.message}`);
+      }
+      return (without.data ?? []).map((row) => withUsageLimit(row, DEFAULT_USAGE_LIMIT));
+    }
+    if (withLimitOnly.error) {
+      throw new Error(`listApiKeysForUser: ${withLimitOnly.error.message}`);
+    }
+    return (withLimitOnly.data ?? []).map((row) => withUsageLimit(row, DEFAULT_USAGE_LIMIT));
+  }
+
+  if (withUsage.error && isColumnMissing(withUsage.error, "usage_limit")) {
     const withoutLimit = await supabase
       .from("api_keys")
-      .select(API_KEY_LIST_COLUMNS)
+      .select(`${API_KEY_LIST_COLUMNS}, usage_count`)
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
     if (withoutLimit.error) {
@@ -136,14 +318,13 @@ export async function listApiKeysForUser(
     return (withoutLimit.data ?? []).map((row) => withUsageLimit(row, DEFAULT_USAGE_LIMIT));
   }
 
-  if (withLimit.error) {
-    throw new Error(`listApiKeysForUser: ${withLimit.error.message}`);
+  if (withUsage.error) {
+    throw new Error(`listApiKeysForUser: ${withUsage.error.message}`);
   }
 
-  return (withLimit.data ?? []).map((row) => withUsageLimit(row, DEFAULT_USAGE_LIMIT));
+  return (withUsage.data ?? []).map((row) => withUsageLimit(row, DEFAULT_USAGE_LIMIT));
 }
 
-/** Set `revoked_at` if the key belongs to the user and is not already revoked. Returns `true` if a row was updated. */
 export async function revokeApiKeyForUser(
   userId: string,
   keyId: string,
@@ -167,7 +348,6 @@ export async function revokeApiKeyForUser(
   return data !== null;
 }
 
-/** Update key label for a user-owned row. Returns updated row or null if not found. */
 export async function updateApiKeyNameForUser(
   userId: string,
   keyId: string,
@@ -176,36 +356,48 @@ export async function updateApiKeyNameForUser(
   const supabase = getServiceSupabase();
   const trimmed = name.trim();
 
-  const withLimit = await supabase
+  const withUsage = await supabase
     .from("api_keys")
     .update({ name: trimmed })
     .eq("id", keyId)
     .eq("user_id", userId)
-    .select(`${API_KEY_LIST_COLUMNS}, usage_limit`)
+    .select(`${API_KEY_LIST_COLUMNS}, usage_limit, usage_count`)
     .maybeSingle();
 
-  if (withLimit.error && isUsageLimitColumnMissing(withLimit.error)) {
-    const withoutLimit = await supabase
+  if (withUsage.error && isColumnMissing(withUsage.error, "usage_count")) {
+    const withLimit = await supabase
       .from("api_keys")
       .update({ name: trimmed })
       .eq("id", keyId)
       .eq("user_id", userId)
-      .select(API_KEY_LIST_COLUMNS)
+      .select(`${API_KEY_LIST_COLUMNS}, usage_limit`)
       .maybeSingle();
-    if (withoutLimit.error) {
-      throw new Error(`updateApiKeyNameForUser: ${withoutLimit.error.message}`);
+    if (withLimit.error && isColumnMissing(withLimit.error, "usage_limit")) {
+      const without = await supabase
+        .from("api_keys")
+        .update({ name: trimmed })
+        .eq("id", keyId)
+        .eq("user_id", userId)
+        .select(API_KEY_LIST_COLUMNS)
+        .maybeSingle();
+      if (without.error) {
+        throw new Error(`updateApiKeyNameForUser: ${without.error.message}`);
+      }
+      return without.data ? withUsageLimit(without.data, DEFAULT_USAGE_LIMIT) : null;
     }
-    return withoutLimit.data ? withUsageLimit(withoutLimit.data, DEFAULT_USAGE_LIMIT) : null;
+    if (withLimit.error) {
+      throw new Error(`updateApiKeyNameForUser: ${withLimit.error.message}`);
+    }
+    return withLimit.data ? withUsageLimit(withLimit.data, DEFAULT_USAGE_LIMIT) : null;
   }
 
-  if (withLimit.error) {
-    throw new Error(`updateApiKeyNameForUser: ${withLimit.error.message}`);
+  if (withUsage.error) {
+    throw new Error(`updateApiKeyNameForUser: ${withUsage.error.message}`);
   }
 
-  return withLimit.data ? withUsageLimit(withLimit.data, DEFAULT_USAGE_LIMIT) : null;
+  return withUsage.data ? withUsageLimit(withUsage.data, DEFAULT_USAGE_LIMIT) : null;
 }
 
-/** Hard-delete a row when `user_id` matches. Returns `true` if at least one row was deleted. */
 export async function deleteApiKeyForUser(
   userId: string,
   keyId: string,

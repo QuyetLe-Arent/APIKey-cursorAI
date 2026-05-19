@@ -50,7 +50,8 @@ export function ApiKeysTable({
                     {row.key_prefix}
                   </td>
                   <td className="px-4 py-3.5 text-zinc-600 dark:text-zinc-400">
-                    0 / {typeof row.usage_limit === "number" ? formatInteger(row.usage_limit) : "—"}
+                    {formatInteger(row.usage_count ?? 0)} /{" "}
+                    {typeof row.usage_limit === "number" ? formatInteger(row.usage_limit) : "—"}
                   </td>
                   <td className="px-4 py-3.5 text-zinc-600 dark:text-zinc-400">
                     {row.last_used_at ? formatDateTime(row.last_used_at) : "Never"}

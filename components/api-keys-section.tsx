@@ -36,8 +36,12 @@ export function ApiKeysSection({
         <div>
           <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">API Keys</h2>
           <p className="mt-1 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
-            The key is used to authenticate your requests. To learn more, see your API
-            documentation. Full secrets are shown only once after creation.
+            The key is used to authenticate your requests. Full secrets are shown only once after
+            creation. Test keys in the{" "}
+            <a href="/playground" className="font-medium text-indigo-600 hover:underline dark:text-indigo-400">
+              API Playground
+            </a>
+            .
           </p>
         </div>
         <button

@@ -9,7 +9,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   callbacks: {
     authorized({ request, auth }) {
-      if (request.nextUrl.pathname.startsWith("/keys")) {
+      if (
+        request.nextUrl.pathname.startsWith("/keys") ||
+        request.nextUrl.pathname.startsWith("/playground")
+      ) {
         return !!auth?.user;
       }
       return true;

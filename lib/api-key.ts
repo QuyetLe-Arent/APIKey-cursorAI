@@ -77,3 +77,11 @@ export function isProbableAkmKey(value: string): boolean {
   const secret = value.slice(API_KEY_PREFIX.length);
   return /^[A-Za-z0-9_-]+$/.test(secret) && secret.length >= 16;
 }
+
+/** Stored `key_prefix` value for lookup (must match `generateApiKey`). */
+export function displayKeyPrefixFromFullKey(fullKey: string): string {
+  if (!isProbableAkmKey(fullKey)) return "";
+  const secret = fullKey.slice(API_KEY_PREFIX.length);
+  const peek = secret.slice(0, PREFIX_VISIBLE_SECRET_CHARS);
+  return `${API_KEY_PREFIX}${peek}...`;
+}

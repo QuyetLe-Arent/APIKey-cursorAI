@@ -9,6 +9,16 @@ export type ApiKeyRow = {
   last_used_at: string | null;
   revoked_at: string | null;
   usage_limit: number;
+  usage_count: number;
+};
+
+/** Key resolved after `x-api-key` validation (server-only). */
+export type ValidatedApiKey = {
+  id: string;
+  user_id: string;
+  name: string;
+  usage_count: number;
+  usage_limit: number;
 };
 
 /** Client payload right after creation (includes the full secret once). */

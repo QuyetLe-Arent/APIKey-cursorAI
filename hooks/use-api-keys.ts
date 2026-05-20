@@ -164,18 +164,6 @@ export function useApiKeys(initialKeys?: ApiKeyListItem[]) {
     }
   }, [newKey, notify]);
 
-  const copyPrefix = useCallback(
-    async (prefix: string) => {
-      try {
-        await navigator.clipboard.writeText(prefix);
-        notify("Copied prefix to clipboard");
-      } catch {
-        notify("Could not copy to clipboard", "error");
-      }
-    },
-    [notify],
-  );
-
   const closeNewKeyModal = useCallback(() => {
     setNewKey(null);
     setCopied(false);
@@ -200,7 +188,6 @@ export function useApiKeys(initialKeys?: ApiKeyListItem[]) {
     revokeKey,
     deleteKey: deleteKeyHandler,
     copyNewKey,
-    copyPrefix,
     closeNewKeyModal,
   };
 }

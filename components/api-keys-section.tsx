@@ -15,7 +15,6 @@ type ApiKeysSectionProps = {
   onEdit: (key: ApiKeyListItem) => void;
   onRevoke: (id: string) => void;
   onDelete: (id: string) => void;
-  onCopyPrefix: (prefix: string) => void;
 };
 
 export function ApiKeysSection({
@@ -28,7 +27,6 @@ export function ApiKeysSection({
   onEdit,
   onRevoke,
   onDelete,
-  onCopyPrefix,
 }: ApiKeysSectionProps) {
   return (
     <section className="rounded-2xl border border-zinc-200/90 bg-white/90 p-6 shadow-sm ring-1 ring-zinc-900/[0.04] backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-900/60 dark:ring-white/[0.06] sm:p-7">
@@ -85,7 +83,6 @@ export function ApiKeysSection({
             onEdit={onEdit}
             onRevoke={onRevoke}
             onDelete={onDelete}
-            onCopyPrefix={onCopyPrefix}
           />
         )}
       </div>

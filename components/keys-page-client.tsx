@@ -43,7 +43,6 @@ function KeysPageContent({ email, initialKeys }: KeysPageClientProps) {
         onEdit={api.setEditingKey}
         onRevoke={(id) => void api.revokeKey(id)}
         onDelete={(id) => void api.deleteKey(id)}
-        onCopyPrefix={(prefix) => void api.copyPrefix(prefix)}
       />
 
       <CreateApiKeyModal

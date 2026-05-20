@@ -8,22 +8,24 @@ import { EditApiKeyModal } from "@/components/edit-api-key-modal";
 import { NewKeySecretModal } from "@/components/new-key-secret-modal";
 import { PlanOverviewCard } from "@/components/plan-overview-card";
 import { useApiKeys } from "@/hooks/use-api-keys";
+import type { ApiKeyListItem } from "@/lib/api-key-types";
 
 type KeysPageClientProps = {
   email: string;
+  initialKeys: ApiKeyListItem[];
 };
 
 /** Shell only — must not call useNotify / useApiKeys here (provider is inside DashboardLayout). */
-export function KeysPageClient({ email }: KeysPageClientProps) {
+export function KeysPageClient({ email, initialKeys }: KeysPageClientProps) {
   return (
     <DashboardLayout>
-      <KeysPageContent email={email} />
+      <KeysPageContent email={email} initialKeys={initialKeys} />
     </DashboardLayout>
   );
 }
 
-function KeysPageContent({ email }: KeysPageClientProps) {
-  const api = useApiKeys();
+function KeysPageContent({ email, initialKeys }: KeysPageClientProps) {
+  const api = useApiKeys(initialKeys);
   const activeKeyCount = api.keys.filter((k) => !k.revoked_at).length;
 
   return (

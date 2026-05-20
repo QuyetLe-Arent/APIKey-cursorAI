@@ -9,7 +9,7 @@ export async function requireSessionUserId(): Promise<
   SessionUserOk | { error: NextResponse }
 > {
   const session = await auth();
-  const userId = session?.user?.id;
+  const userId = session?.user?.id?.trim();
   if (!userId) {
     return {
       error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),

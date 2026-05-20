@@ -13,13 +13,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         request.nextUrl.pathname.startsWith("/keys") ||
         request.nextUrl.pathname.startsWith("/playground")
       ) {
-        return !!auth?.user;
+        return Boolean(auth?.user?.id);
       }
       return true;
     },
+    jwt({ token, account }) {
+      // Keep a stable Google user id across sign-in / refresh (used as api_keys.user_id).
+      if (account?.providerAccountId) {
+        token.sub = account.providerAccountId;
+      }
+      return token;
+    },
     session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.sub ?? "";
+      if (session.user && token.sub) {
+        session.user.id = token.sub;
       }
       return session;
     },

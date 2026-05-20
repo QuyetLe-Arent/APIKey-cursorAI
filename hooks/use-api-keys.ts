@@ -12,10 +12,11 @@ import {
 } from "@/lib/api-keys-client";
 import { useCallback, useEffect, useState } from "react";
 
-export function useApiKeys() {
+export function useApiKeys(initialKeys?: ApiKeyListItem[]) {
   const notify = useNotify();
-  const [keys, setKeys] = useState<ApiKeyListItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const hasServerKeys = initialKeys !== undefined;
+  const [keys, setKeys] = useState<ApiKeyListItem[]>(initialKeys ?? []);
+  const [loading, setLoading] = useState(!hasServerKeys);
   const [refreshing, setRefreshing] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [newKey, setNewKey] = useState<ApiKeyCreatedResponse | null>(null);
@@ -25,21 +26,29 @@ export function useApiKeys() {
   const [savingEdit, setSavingEdit] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const loadKeys = useCallback(async (): Promise<boolean> => {
-    const result = await listApiKeys();
-    if (!result.ok) {
-      notify(result.message, "error");
-      if (result.status === 401) {
-        window.location.href = "/login?callbackUrl=/keys";
+  const loadKeys = useCallback(
+    async (options?: { keepExistingOnError?: boolean }): Promise<boolean> => {
+      const result = await listApiKeys();
+      if (!result.ok) {
+        notify(result.message, "error");
+        if (result.status === 401) {
+          window.location.href = "/login?callbackUrl=/keys";
+        }
+        if (!options?.keepExistingOnError) {
+          setKeys([]);
+        }
+        return false;
       }
-      setKeys([]);
-      return false;
-    }
-    setKeys(result.data);
-    return true;
-  }, [notify]);
+      setKeys(result.data);
+      return true;
+    },
+    [notify],
+  );
 
   useEffect(() => {
+    if (hasServerKeys) {
+      return;
+    }
     let cancelled = false;
     (async () => {
       setLoading(true);
@@ -49,7 +58,7 @@ export function useApiKeys() {
     return () => {
       cancelled = true;
     };
-  }, [loadKeys]);
+  }, [hasServerKeys, loadKeys]);
 
   const refresh = useCallback(async () => {
     setRefreshing(true);

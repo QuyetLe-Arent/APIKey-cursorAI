@@ -23,10 +23,18 @@ export function ApiKeysTable({
   return (
     <div className="overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-sm ring-1 ring-zinc-900/[0.04] dark:border-zinc-800 dark:bg-zinc-950 dark:ring-white/[0.06]">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[840px] text-left text-sm">
+        <table className="w-full min-w-[720px] table-fixed text-left text-sm">
+          <colgroup>
+            <col className="w-[16%]" />
+            <col className="w-[17%]" />
+            <col className="w-[11%]" />
+            <col className="w-[17%]" />
+            <col className="w-[10%]" />
+            <col className="w-[19%]" />
+          </colgroup>
           <thead className="border-b border-zinc-200 bg-zinc-50/90 dark:border-zinc-800 dark:bg-zinc-900/90">
             <tr>
-              {["Label", "Prefix", "Usage", "Last used", "Created", "Status", "Actions"].map((h) => (
+              {["Label", "Prefix", "Usage", "Created", "Status", "Actions"].map((h) => (
                 <th
                   key={h}
                   className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400"
@@ -45,21 +53,27 @@ export function ApiKeysTable({
                   key={row.id}
                   className="text-zinc-800 transition hover:bg-zinc-50/80 dark:text-zinc-200 dark:hover:bg-zinc-900/50"
                 >
-                  <td className="px-4 py-3.5 font-medium">{row.name || "—"}</td>
-                  <td className="px-4 py-3.5 font-mono text-xs text-zinc-600 dark:text-zinc-400">
-                    {row.key_prefix}
+                  <td className="max-w-0 px-4 py-3.5 font-medium">
+                    <span
+                      className="block truncate"
+                      title={row.name || undefined}
+                    >
+                      {row.name || "—"}
+                    </span>
                   </td>
-                  <td className="px-4 py-3.5 text-zinc-600 dark:text-zinc-400">
+                  <td className="max-w-0 px-4 py-3.5 font-mono text-xs text-zinc-600 dark:text-zinc-400">
+                    <span className="block truncate" title={row.key_prefix}>
+                      {row.key_prefix}
+                    </span>
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3.5 text-zinc-600 dark:text-zinc-400">
                     {formatInteger(row.usage_count ?? 0)} /{" "}
                     {typeof row.usage_limit === "number" ? formatInteger(row.usage_limit) : "—"}
                   </td>
-                  <td className="px-4 py-3.5 text-zinc-600 dark:text-zinc-400">
-                    {row.last_used_at ? formatDateTime(row.last_used_at) : "Never"}
-                  </td>
-                  <td className="px-4 py-3.5 text-zinc-600 dark:text-zinc-400">
+                  <td className="whitespace-nowrap px-4 py-3.5 text-zinc-600 dark:text-zinc-400">
                     {formatDateTime(row.created_at)}
                   </td>
-                  <td className="px-4 py-3.5">
+                  <td className="whitespace-nowrap px-4 py-3.5">
                     {revoked ? (
                       <span className="inline-flex rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-900 dark:bg-amber-950/80 dark:text-amber-200">
                         Revoked
@@ -70,8 +84,8 @@ export function ApiKeysTable({
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3.5">
-                    <div className="flex flex-wrap items-center gap-1">
+                  <td className="whitespace-nowrap px-4 py-3.5">
+                    <div className="flex items-center gap-1">
                       <IconButton
                         label="Copy prefix"
                         onClick={() => onCopyPrefix(row.key_prefix)}
